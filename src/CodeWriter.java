@@ -19,16 +19,18 @@ public class CodeWriter {
      * @param fileName the name of the desired output file as a string
      */
     public CodeWriter(String fileName) {
+
+       // next block of code might throw an exception
         try {
 
             // establish the connection to the output file
             outputFile = new PrintWriter(fileName);
 
-        } catch (FileNotFoundException e) {
+        } catch (FileNotFoundException e) { // catch that shit
 
-            // exception handling techniques
+            // exception handling technique
             e.printStackTrace();
-            System.exit(0);
+            System.exit(0); // force quit
 
         }
     }
