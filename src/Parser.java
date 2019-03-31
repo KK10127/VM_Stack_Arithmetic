@@ -54,17 +54,22 @@ public class Parser {
     }
 
     /**
-     * Accessor method for arg1.
+     * Accessor method for arg1. Returns the first argumnt of the
+     * command. In the case of C_ARITHMETIC, the command itself,
+     * (add, sub, etc.) is returned. Should not be called if the
+     * current command is C_RETURN.
      * @return arg1
      */
-    public String getArg1() {
+    public String arg1() {
         return arg1;
     }
 
-    /** Accessor method for arg2.
+    /** Accessor method for arg2. Returns the second argument of the
+     * current command. Should be called only if the current command
+     * is C_PUSH, C_POP, C_FUNCTION, or C_CALL.
      * @return arg2
      */
-    public int getArg2() {
+    public int arg2() {
         return arg2;
     }
 
