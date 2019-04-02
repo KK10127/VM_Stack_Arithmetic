@@ -157,9 +157,9 @@ public class CodeWriter {
             code = code + "@" + index + "\n" +
                     "D = A\n" +
                     "@" + getSymbolFromWord(segment) + "\n" +
-                    "D = M + D\n" +
-                    "@addr\n" +
-                    "M = D\n";
+                    "A = M + D\n" +
+                    "D = M\n" +
+                    "\n";
 
             // determind whether we're pushing or popping
             if (commandType == CommandType.C_PUSH) {
@@ -169,7 +169,10 @@ public class CodeWriter {
                         "@SP\n" +
                         "M = M + 1\n";
             } else if (commandType == CommandType.C_POP) {
-                code = code + "@SP\n" +
+                code = code + "D = A\n" +
+                        "@addr\n" +
+                        "M = D\n" +
+                        "@SP\n" +
                         "AM = M - 1\n" +
                         "D = M\n" +
                         "@addr\n" +
@@ -216,7 +219,7 @@ public class CodeWriter {
                     "@5\n" +
                     "D = A + D\n" +
                     "@addr\n" +
-                    "M = D\n";
+                    "D = M\n";
 
             if (commandType == CommandType.C_PUSH) {
                 code = code + "@SP\n" +
@@ -225,7 +228,10 @@ public class CodeWriter {
                         "@SP\n" +
                         "M = M + 1\n";
             } else if (commandType == CommandType.C_POP) {
-                code = code + "@SP\n" +
+                code = code + "D = A\n" +
+                        "@addr\n" +
+                        "M = D\n" +
+                        "@SP\n" +
                         "AM = M - 1\n" +
                         "D = M\n" +
                         "@addr\n" +
