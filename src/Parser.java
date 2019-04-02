@@ -1,4 +1,7 @@
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Scanner;
+import java.util.StringTokenizer;
 
 /**
  * Class responsible for parsing and updating fields for translation during the
@@ -17,8 +20,13 @@ public class Parser {
     /** the first argument of the VM command (ex. 'pop local') **/
     private String arg1;
 
+    /** the memory segment if applicable */
+    private String memSeg;
+
     /** the second argument of the VM command (usually having to do with registers) **/
     private int arg2;
+
+
 
     /** a scanner object to be used to read the input file **/
     private Scanner inputFile;
@@ -26,13 +34,24 @@ public class Parser {
     /** the type of command the parser has encounters (see CommandType.java) **/
     private CommandType commandType;
 
+    /** raw line of the file **/
+    private String rawLine;
+    private String cleanLine;
+    private int lineNumber;
+
+
     /**
      * Constructor for a parser object given the file name
      * @param fileName the path of the file you wish to read
      */
     public Parser(String fileName) {
         // initialize the scanner field
-        inputFile = new Scanner(fileName);
+        try {
+            inputFile = new Scanner(new File(fileName));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        lineNumber = 0;
     }
 
     /**
@@ -50,8 +69,133 @@ public class Parser {
      * no current command
      */
     public void advance() {
+        // get the net raw line.
+        rawLine = inputFile.nextLine();
+
+        cleanLine();
+
+        if (cleanLine.equals("")) {
+            if (VMTranslator.DEBUG) System.out.println("\t\t\tEMPTY LINE");
+            return;
+        } else {
+            lineNumber++;
+        }
+
+        // parse everything
+        parse();
+
+        // show results
+        if (VMTranslator.DEBUG && commandType != CommandType.C_NONE) System.out.println("\tadvance() LINE " + lineNumber + " [ "
+                + cleanLine + " ] // " + getCommandType() + " // " + arg1 + " " + memSeg + " " + arg2);
+
 
     }
+
+
+    /**
+     * Helper method for determining the command type of the line
+     */
+    private void parse() {
+
+        StringTokenizer st = new StringTokenizer(cleanLine);
+        String firstWord = st.nextToken(" ");
+
+        if (validateArithmetic(firstWord)) {
+            // then it is an arithmetic command
+            arg1 = firstWord;
+            commandType = CommandType.C_ARITHMETIC;
+
+            if (st.hasMoreTokens()) {
+                //throw new StackArithmeticException(1);
+            }
+
+        } else if (firstWord.equals("push")) {
+            String secondWord = st.nextToken(" ");
+            if (!validateMemSegment(secondWord)) {
+                //throw new MemoryException(1);
+            }
+
+            commandType = CommandType.C_PUSH;
+            setArg1(firstWord);
+            memSeg = secondWord;
+
+            // get the specific number
+            setArg2(Integer.parseInt(st.nextToken()));
+
+        } else if (firstWord.equals("pop")) {
+            String secondWord = st.nextToken(" ");
+            if (!validateMemSegment(secondWord)) {
+                // throw new MemoryException(1); // 1 is invalid memory segment.. 2 negative offset.. 3 offset not valid
+            }
+            commandType = CommandType.C_POP;
+            memSeg = secondWord;
+
+            // get the specific number
+            setArg2(Integer.parseInt(st.nextToken()));
+
+        } else {
+            System.out.println("Unrecognized Zommand!");
+            commandType = CommandType.C_NONE;
+            lineNumber--;
+            //throw new SyntaxException();
+        }
+    }
+
+    public CommandType getCommandType() {
+        return commandType;
+    }
+
+    public String getMemSeg() {
+        return memSeg;
+    }
+
+
+    public String getLinesRead() { return lineNumber + ""; }
+
+
+    public boolean validateArithmetic(String word) {
+        return (word.equals("add") ||
+                word.equals("sub") ||
+                word.equals("neg") ||
+                word.equals("eq") ||
+                word.equals("gt") ||
+                word.equals("lt") ||
+                word.equals("and") ||
+                word.equals("or") ||
+                word.equals("not") );
+    }
+
+    public boolean validateMemSegment(String word) {
+        return (word.equals("local") ||
+                word.equals("argument") ||
+                word.equals("this") ||
+                word.equals("that") ||
+                word.equals("constant") ||
+                word.equals("static") ||
+                word.equals("pointer") ||
+                word.equals("temp") );
+    }
+
+
+
+
+
+
+    /**
+     * Helper method for cleaning the line contents/
+     * @return a String representing a clean line in the file.
+     */
+    public void cleanLine() {
+        cleanLine = rawLine.trim();
+        int index = cleanLine.indexOf("//");
+
+
+
+        cleanLine = (index != -1)
+                ? cleanLine.substring(0, index).trim().replace(" ","")
+                : cleanLine.trim();
+    }
+
 
     /**
      * Accessor method for arg1. Returns the first argumnt of the
