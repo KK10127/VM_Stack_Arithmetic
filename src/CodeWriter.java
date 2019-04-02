@@ -44,12 +44,10 @@ public class CodeWriter {
 
         // build the arithmetic mapper
         arithmeticMapper.put("add", "@SP\n" +
-                        "A = M - 1\n" +
+                        "AM = M - 1\n" +
                         "D = M\n" +
                         "A = A -1\n" +
-                        "M = M + D\n" +
-                        "@SP\n" +
-                        "M = A + 1\n");
+                        "M = M + D\n");
         arithmeticMapper.put("sub", "@SP\n" +
                 "AM = M - 1\n" +
                 "D = M\n" +
@@ -154,22 +152,25 @@ public class CodeWriter {
 
             // pushing and popping to these 4 segments use the same code for
             // addr = LCL + arg2
-            code = code + "@" + index + "\n" +
-                    "D = A\n" +
-                    "@" + getSymbolFromWord(segment) + "\n" +
-                    "A = M + D\n" +
-                    "D = M\n" +
-                    "\n";
 
-            // determind whether we're pushing or popping
             if (commandType == CommandType.C_PUSH) {
-                code = code + "@SP\n" +
+                code = code + "@" + index + "\n" +
+                        "D = A\n" +
+                        "@" + getSymbolFromWord(segment) + "\n" +
+                        "A = M + D\n" +
+                        "D = M\n" +
+                        "\n" +
+                        "@SP\n" +
                         "A = M\n" +
                         "M = D\n" +
                         "@SP\n" +
                         "M = M + 1\n";
-            } else if (commandType == CommandType.C_POP) {
-                code = code + "D = A\n" +
+            } else {
+                code = code + "@" + index + "\n" +
+                        "D = A\n" +
+                        "@" + getSymbolFromWord(segment) + "\n" +
+                        "A = M + D\n" +
+                        "D = A\n" +
                         "@addr\n" +
                         "M = D\n" +
                         "@SP\n" +
@@ -178,8 +179,6 @@ public class CodeWriter {
                         "@addr\n" +
                         "A = M\n" +
                         "M = D\n";
-            } else {
-                // well then why am I in this method?
             }
 
         } else if (segment.equals("constant")) {
@@ -213,22 +212,23 @@ public class CodeWriter {
                     break;
             }
         } else if (segment.equals("temp")) {
-            // addr = TEMP + arg2
-            code = code + "@" + index + "\n" +
-                    "D = A\n" +
-                    "@5\n" +
-                    "D = A + D\n" +
-                    "@addr\n" +
-                    "D = M\n";
 
             if (commandType == CommandType.C_PUSH) {
-                code = code + "@SP\n" +
+                code = code + "@" + index + "\n" +
+                        "D = A\n" +
+                        "@5\n" +
+                        "A = A + D\n" +
+                        "D = M\n" +
+                        "@SP\n" +
                         "A = M\n" +
                         "M = D\n" +
                         "@SP\n" +
                         "M = M + 1\n";
-            } else if (commandType == CommandType.C_POP) {
-                code = code + "D = A\n" +
+            } else {
+                code = code + "@" + index + "\n" +
+                        "D = A\n" +
+                        "@5\n" +
+                        "D = A + D\n" +
                         "@addr\n" +
                         "M = D\n" +
                         "@SP\n" +
@@ -237,9 +237,8 @@ public class CodeWriter {
                         "@addr\n" +
                         "A = M\n" +
                         "M = D\n";
-            } else {
-                // well then why am I in this method?
             }
+
             //TODO: check for out of bounds with temp
 
         } else if (segment.equals("pointer")) {
