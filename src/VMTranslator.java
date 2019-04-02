@@ -16,7 +16,7 @@ import java.io.File;
 public class VMTranslator {
 
     public static final boolean DEBUG = true;
-    public static final String IN_FILE_NAME = "foo";
+    public static final String IN_FILE_NAME = "BasicTest";
 
     /** CodeWriter object for writing the code for each command **/
     private CodeWriter codeWriter;
@@ -40,6 +40,7 @@ public class VMTranslator {
                 codeWriter.writeArithmetic(parser.arg1());
             } else if (parser.getCommandType() == CommandType.C_PUSH ||
                     parser.getCommandType() == CommandType.C_POP) {
+                System.out.println("command type is push or pop");
                 codeWriter.writePushPop(parser.getCommandType(), parser.getMemSeg(),
                         parser.arg2());
             } else {

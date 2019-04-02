@@ -30,7 +30,7 @@ public class CodeWriter {
 
             // establish the connection to the output file
             outputFileName = fileName;
-            outputFile = new PrintWriter("src/files/foo.asm");
+            outputFile = new PrintWriter(fileName);
 
         } catch (FileNotFoundException e) { // catch that shit
 
@@ -50,13 +50,75 @@ public class CodeWriter {
                         "M = M + D\n" +
                         "@SP\n" +
                         "M = A + 1\n");
-        arithmeticMapper.put("sub", "");
-        arithmeticMapper.put("eq", "");
-        arithmeticMapper.put("gt", "");
-        arithmeticMapper.put("lt", "");
-        arithmeticMapper.put("and", "");
-        arithmeticMapper.put("or", "");
-        arithmeticMapper.put("not", "");
+        arithmeticMapper.put("sub", "@SP\n" +
+                "AM = M - 1\n" +
+                "D = M\n" +
+                "A = A - 1\n" +
+                "M = M - D\n");
+        arithmeticMapper.put("neg", "@SP\n" +
+                "A = M - 1\n" +
+                "M = !M\n");
+        arithmeticMapper.put("eq", "@SP\n" +
+                "AM = M - 1\n" +
+                "D = M\n" +
+                "A = A - 1\n" +
+                "D = M - D\n" +
+                "@CONTINUE\n" +
+                "D;JNE\n" +
+                "@SP\n" +
+                "A = A - 1\n" +
+                "M = -1\n" +
+                "@END\n" +
+                "0;JMP\n" +
+                "(CONTINUE)\n" +
+                "@SP\n" +
+                "A = A - 1\n" +
+                "M = 0\n" +
+                "(END)\n");
+        arithmeticMapper.put("gt", "@SP\n" +
+                "AM = M - 1\n" +
+                "D = M\n" +
+                "A = A - 1\n" +
+                "D = M - D\n" +
+                "@TRUE\n" +
+                "D;JGT\n" +
+                "@SP\n" +
+                "A = M - 1\n" +
+                "M = 0\n" +
+                "@END\n" +
+                "0;JMP\n" +
+                "(TRUE)\n" +
+                "@SP\n" +
+                "A = M - 1\n" +
+                "M = -1\n" +
+                "(END)\n");
+        arithmeticMapper.put("lt", "@SP\n" +
+                "AM = M - 1\n" +
+                "D = M\n" +
+                "A = A - 1\n" +
+                "D = M - D\n" +
+                "@TRUE\n" +
+                "D;JLT\n" +
+                "@SP\n" +
+                "A = M - 1\n" +
+                "M = 0\n" +
+                "@END\n" +
+                "0;JMP\n" +
+                "(TRUE)\n" +
+                "@SP\n" +
+                "A = M - 1\n" +
+                "M = -1\n" +
+                "(END)\n");
+        arithmeticMapper.put("and", "@SP\n" +
+                "AM = M - 1\n" +
+                "D = M\n" +
+                "A = A - 1\n" +
+                "M = M&D\n");
+        arithmeticMapper.put("or", "@SP\n" +
+                "AM = M - 1\n" +
+                "D = M\n" +
+                "A = A - 1\n" +
+                "M = M|D\n");
 
     }
 
@@ -65,7 +127,15 @@ public class CodeWriter {
      * @param command the given input command as a string
      */
     public void writeArithmetic(String command) {
+        if (arithmeticMapper.containsKey(command)) {
+            String code = "// " + command + "\n";
+            code = code + arithmeticMapper.get(command) + "\n";
 
+            outputFile.write(code);
+            outputFile.flush();
+        } else {
+            // do nothing
+        }
     }
 
     /**
@@ -74,7 +144,7 @@ public class CodeWriter {
      * @param commandType the command type as the enumerated data type 'CommandType'
      */
     public void writePushPop(CommandType commandType, String segment, int index) {
-        String code = "";
+        String code = "// " + commandType  + " " + segment + " " + index + "\n";
 
         // if we're dealing with local, argument, this, or that
         if (segment.equals("local") ||
@@ -84,7 +154,7 @@ public class CodeWriter {
 
             // pushing and popping to these 4 segments use the same code for
             // addr = LCL + arg2
-            code = "@" + index + "\n" +
+            code = code + "@" + index + "\n" +
                     "D = A\n" +
                     "@" + getSymbolFromWord(segment) + "\n" +
                     "D = M + D\n" +
@@ -111,7 +181,7 @@ public class CodeWriter {
 
         } else if (segment.equals("constant")) {
             // we can only push these constants
-            code = "@" + index + "\n" +
+            code = code + "@" + index + "\n" +
                     "D = A\n" +
                     "@SP\n" +
                     "AM = M + 1\n" +
@@ -124,14 +194,14 @@ public class CodeWriter {
         } else if (segment.equals("static")) {
             switch(commandType){
                 case C_POP:
-                    code = "@SP\n" +
+                    code = code + "@SP\n" +
                             "AM = M-1\n" +
                             "D = M\n" +
                             "@" + outputFileName.substring(10,outputFileName.indexOf('.')) + "." + index + "\n" +
                             "M = D\n";
                     break;
                 case C_PUSH:
-                    code = "@" + outputFileName.substring(10,outputFileName.indexOf('.')) + "." + index + "\n" +
+                    code = code + "@" + outputFileName.substring(10,outputFileName.indexOf('.')) + "." + index + "\n" +
                             "D = M\n" +
                             "@SP\n" +
                             "AM = M + 1\n" +
@@ -141,7 +211,7 @@ public class CodeWriter {
             }
         } else if (segment.equals("temp")) {
             // addr = TEMP + arg2
-            code = "@" + index + "\n" +
+            code = code + "@" + index + "\n" +
                     "D = A\n" +
                     "@5\n" +
                     "D = A + D\n" +
@@ -172,14 +242,14 @@ public class CodeWriter {
                     : getSymbolFromWord("that");
 
             if (commandType == CommandType.C_PUSH) {
-                code = "@" + thisOrThat + "\n" +
+                code = code + "@" + thisOrThat + "\n" +
                         "D = M\n" +
                         "@SP\n" +
                         "AM = M + 1\n" +
                         "A = A - 1\n" +
                         "M = D\n";
             } else if (commandType == CommandType.C_POP) {
-                code = "@SP\n" +
+                code = code + "@SP\n" +
                         "AM = M - 1\n" +
                         "D = M\n" +
                         "@" + thisOrThat + "\n" +
@@ -188,6 +258,9 @@ public class CodeWriter {
                 // well then why am I in this method?
             }
         }
+
+        code = code + "\n";
+
         outputFile.write(code);
         outputFile.flush();
     }

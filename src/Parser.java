@@ -75,7 +75,11 @@ public class Parser {
         cleanLine();
 
         if (cleanLine.equals("")) {
-            if (VMTranslator.DEBUG) System.out.println("\t\t\tEMPTY LINE");
+            //if (VMTranslator.DEBUG) System.out.println("\t\t\tEMPTY LINE");
+            //System.out.println("Unrecognized Command!");
+            commandType = CommandType.C_NONE;
+            setArg1("");
+            memSeg = "";
             return;
         } else {
             lineNumber++;
@@ -134,9 +138,6 @@ public class Parser {
             setArg2(Integer.parseInt(st.nextToken()));
 
         } else {
-            System.out.println("Unrecognized Zommand!");
-            commandType = CommandType.C_NONE;
-            lineNumber--;
             //throw new SyntaxException();
         }
     }
