@@ -304,7 +304,7 @@ public class CodeWriter {
 
 
             if (VMTranslator.DEBUG) System.out.println("\t\tcodeWriter - > WRITING CONSTANT CODE");
-
+        // handling the static segment
         } else if (segment.equals("static")) {
             switch(commandType){
                 case C_POP:
@@ -323,6 +323,7 @@ public class CodeWriter {
                             "M = D\n";
                     break;
             }
+        // now for the temp segment
         } else if (segment.equals("temp")) {
 
             if (commandType == CommandType.C_PUSH) {
@@ -350,9 +351,7 @@ public class CodeWriter {
                         "A = M\n" +
                         "M = D\n";
             }
-
-            //TODO: check for out of bounds with temp
-
+        // and the pointer segment
         } else if (segment.equals("pointer")) {
 
             String thisOrThat = (index == 0) ? getSymbolFromWord("this")
@@ -376,23 +375,33 @@ public class CodeWriter {
             }
         }
 
+        // add a space between each vm command for readability and debugging help
         code = code + "\n";
 
+        // write and flush
         outputFile.write(code);
         outputFile.flush();
     }
 
+    /**
+     * Writes an infinite loop at the end of the output file.
+     */
     public void writeEnding() {
 
         String code = "(END)\n" +
                 "@END\n" +
                 "0;JMP\n";
 
+        // write and flush
         outputFile.write(code);
         outputFile.flush();
     }
 
-
+    /**
+     * Gets the assembly symbol from segment type. ex.. local = LCL
+     * @param segment the given segment type as a String
+     * @return the assembly symbol corresponding to the memory segment
+     */
     private String getSymbolFromWord(String segment) {
 
         String returnThis = "";
