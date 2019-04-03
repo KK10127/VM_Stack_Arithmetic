@@ -6,6 +6,7 @@ import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.util.HashMap;
 
+
 /**
  * Generates assembly code from the parsed VM command.
  *
@@ -16,14 +17,107 @@ public class CodeWriter {
 
     /** connection to the output file where our hack assembly code will be written **/
     private PrintWriter outputFile;
-    private HashMap<String, String> arithmeticMapper;
+    private ArithmeticHashMap arithmeticMapper;
     private String outputFileName;
+    private int labelNum;
+
+    /**
+     * Class extension of a HashMap
+     * Necessary for implementation of unique labels when generating an asm file.
+     */
+    private class ArithmeticHashMap extends HashMap<String, String> {
+       // constructor which initializes label tracking variable.
+        public ArithmeticHashMap() {
+            labelNum = 1;
+
+        }
+
+        /**
+         * Overriden get method. When the the key is gt, lt, or eq...
+         * then labels are being used, the hashmap must update the values for these
+         * keys with new labels that are unique.
+         * @param key the arithmetic command
+         * @return The assembly language translation of the supplied vm command.
+         */
+        @Override
+        public String get(Object key) {
+
+            // save the old value
+            String oldValue = super.get(key);
+
+            // if the key is gt, lt, or eq
+            // update the assembly code with the new unique labels.
+            if( ((String) key).equals("gt") ||
+                    ((String) key).equals("lt") ||
+                    ((String) key).equals("eq")) {
+                labelNum++;
+
+                // update the new values
+                this.put("gt","@SP\n" +
+                        "AM = M - 1\n" +
+                        "D = M\n" +
+                        "A = A - 1\n" +
+                        "D = M - D\n" +
+                        "@TRUE_" + labelNum + "\n" +
+                        "D;JGT\n" +
+                        "@SP\n" +
+                        "A = M - 1\n" +
+                        "M = 0\n" +
+                        "@CONTINUE_" + labelNum + "\n" +
+                        "0;JMP\n" +
+                        getTrueLabel() +
+                        "@SP\n" +
+                        "A = M - 1\n" +
+                        "M = -1\n" +
+                        getContinueLabel());
+                this.put("lt", "@SP\n" +
+                        "AM = M - 1\n" +
+                        "D = M\n" +
+                        "A = A - 1\n" +
+                        "D = M - D\n" +
+                        "@TRUE_" + labelNum + "\n" +
+                        "D;JLT\n" +
+                        "@SP\n" +
+                        "A = M - 1\n" +
+                        "M = 0\n" +
+                        "@CONTINUE_" + labelNum + "\n" +
+                        "0;JMP\n" +
+                        getTrueLabel() +
+                        "@SP\n" +
+                        "A = M - 1\n" +
+                        "M = -1\n" +
+                        getContinueLabel());
+                this.put("eq", "@SP\n" +
+                        "AM = M - 1\n" +
+                        "D = M\n" +
+                        "A = A - 1\n" +
+                        "D = M - D\n" +
+                        "@TRUE_" + labelNum + "\n" +
+                        "D;JEQ\n" +
+                        "@SP\n" +
+                        "A = M - 1\n" +
+                        "M = 0\n" +
+                        "@CONTINUE_" + labelNum + "\n" +
+                        "0;JMP\n" +
+                        getTrueLabel() +
+                        "@SP\n" +
+                        "A = M - 1\n" +
+                        "M = -1\n" +
+                        getContinueLabel());
+            }
+
+            // return the previous/current value
+            return oldValue;
+        }
+    }
+
 
     /**
      * Opens the output file stream and gets ready to write to it.
      * @param fileName the name of the desired output file as a string
      */
     public CodeWriter(String fileName) {
+
 
        // next block of code might throw an exception
         try {
@@ -40,7 +134,7 @@ public class CodeWriter {
 
         }
 
-        arithmeticMapper = new HashMap<>();
+        arithmeticMapper = new ArithmeticHashMap();
 
         // build the arithmetic mapper
         arithmeticMapper.put("add", "@SP\n" +
@@ -55,58 +149,58 @@ public class CodeWriter {
                 "M = M - D\n");
         arithmeticMapper.put("neg", "@SP\n" +
                 "A = M - 1\n" +
-                "M = !M\n");
+                "M = -M\n");
         arithmeticMapper.put("eq", "@SP\n" +
                 "AM = M - 1\n" +
                 "D = M\n" +
                 "A = A - 1\n" +
                 "D = M - D\n" +
-                "@CONTINUE\n" +
-                "D;JNE\n" +
+                "@TRUE_1\n" +
+                "D;JEQ\n" +
                 "@SP\n" +
-                "A = A - 1\n" +
-                "M = -1\n" +
-                "@END\n" +
-                "0;JMP\n" +
-                "(CONTINUE)\n" +
-                "@SP\n" +
-                "A = A - 1\n" +
+                "A = M - 1\n" +
                 "M = 0\n" +
-                "(END)\n");
+                "@CONTINUE_1\n" +
+                "0;JMP\n" +
+                "(TRUE_1)\n" +
+                "@SP\n" +
+                "A = M - 1\n" +
+                "M = -1\n" +
+                "(CONTINUE_1)\n");
         arithmeticMapper.put("gt", "@SP\n" +
                 "AM = M - 1\n" +
                 "D = M\n" +
                 "A = A - 1\n" +
                 "D = M - D\n" +
-                "@TRUE\n" +
+                "@TRUE_1\n" +
                 "D;JGT\n" +
                 "@SP\n" +
                 "A = M - 1\n" +
                 "M = 0\n" +
-                "@END\n" +
+                "@CONTINUE_1\n" +
                 "0;JMP\n" +
-                "(TRUE)\n" +
+                "(TRUE_1)\n" +
                 "@SP\n" +
                 "A = M - 1\n" +
                 "M = -1\n" +
-                "(END)\n");
+                "(CONTINUE_1)\n");
         arithmeticMapper.put("lt", "@SP\n" +
                 "AM = M - 1\n" +
                 "D = M\n" +
                 "A = A - 1\n" +
                 "D = M - D\n" +
-                "@TRUE\n" +
+                "@TRUE_1\n" +
                 "D;JLT\n" +
                 "@SP\n" +
                 "A = M - 1\n" +
                 "M = 0\n" +
-                "@END\n" +
+                "@CONTINUE_1\n" +
                 "0;JMP\n" +
-                "(TRUE)\n" +
+                "(TRUE_1)\n" +
                 "@SP\n" +
                 "A = M - 1\n" +
                 "M = -1\n" +
-                "(END)\n");
+                "(CONTINUE_1)\n");
         arithmeticMapper.put("and", "@SP\n" +
                 "AM = M - 1\n" +
                 "D = M\n" +
@@ -117,7 +211,9 @@ public class CodeWriter {
                 "D = M\n" +
                 "A = A - 1\n" +
                 "M = M|D\n");
-
+        arithmeticMapper.put("not", "@SP\n" +
+                "A = M - 1\n" +
+                "M = !M\n");
     }
 
     /**
@@ -137,6 +233,23 @@ public class CodeWriter {
     }
 
     /**
+     * Helper method for building and returning a 'continue' label which is unique.
+     * @return (CONTINUE_#) where '#' is a unique label id
+     */
+    public String getContinueLabel() {
+        return "(CONTINUE_" + labelNum + ")\n";
+    }
+
+    /**
+     * Helper method for building and returning a 'true' label which is unique.
+     * @return (TRUE_#) where '#' is a unique label id
+     */
+    public String getTrueLabel() {
+        return "(TRUE_" + labelNum + ")\n";
+    }
+
+
+    /**
      * Writes to the output file the assembly code that implements the given command where
      * the given command is either C_PUSH or C_POP.
      * @param commandType the command type as the enumerated data type 'CommandType'
@@ -152,7 +265,6 @@ public class CodeWriter {
 
             // pushing and popping to these 4 segments use the same code for
             // addr = LCL + arg2
-
             if (commandType == CommandType.C_PUSH) {
                 code = code + "@" + index + "\n" +
                         "D = A\n" +
@@ -180,7 +292,7 @@ public class CodeWriter {
                         "A = M\n" +
                         "M = D\n";
             }
-
+        // handling the constant segment
         } else if (segment.equals("constant")) {
             // we can only push these constants
             code = code + "@" + index + "\n" +
@@ -189,7 +301,7 @@ public class CodeWriter {
                     "AM = M + 1\n" +
                     "A = A - 1\n" +
                     "M = D\n";
-            // TODO handle exceptions when someone POP's a constant
+
 
             if (VMTranslator.DEBUG) System.out.println("\t\tcodeWriter - > WRITING CONSTANT CODE");
 
@@ -199,11 +311,11 @@ public class CodeWriter {
                     code = code + "@SP\n" +
                             "AM = M-1\n" +
                             "D = M\n" +
-                            "@" + outputFileName.substring(10,outputFileName.indexOf('.')) + "." + index + "\n" +
+                            "@" + outputFileName.substring(14,outputFileName.indexOf('.')) + "." + index + "\n" +
                             "M = D\n";
                     break;
                 case C_PUSH:
-                    code = code + "@" + outputFileName.substring(10,outputFileName.indexOf('.')) + "." + index + "\n" +
+                    code = code + "@" + outputFileName.substring(14,outputFileName.indexOf('.')) + "." + index + "\n" +
                             "D = M\n" +
                             "@SP\n" +
                             "AM = M + 1\n" +
@@ -269,6 +381,17 @@ public class CodeWriter {
         outputFile.write(code);
         outputFile.flush();
     }
+
+    public void writeEnding() {
+
+        String code = "(END)\n" +
+                "@END\n" +
+                "0;JMP\n";
+
+        outputFile.write(code);
+        outputFile.flush();
+    }
+
 
     private String getSymbolFromWord(String segment) {
 

@@ -86,7 +86,12 @@ public class Parser {
         }
 
         // parse everything
-        parse();
+        try {
+            parse();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            System.exit(0);
+        }
 
         // show results
         if (VMTranslator.DEBUG && commandType != CommandType.C_NONE) System.out.println("\tadvance() LINE " + lineNumber + " [ "
@@ -99,7 +104,7 @@ public class Parser {
     /**
      * Helper method for determining the command type of the line
      */
-    private void parse() {
+    private void parse() throws Exception {
 
         StringTokenizer st = new StringTokenizer(cleanLine);
         String firstWord = st.nextToken(" ");
@@ -109,14 +114,17 @@ public class Parser {
             arg1 = firstWord;
             commandType = CommandType.C_ARITHMETIC;
 
+            // checking for extraneous syntax
             if (st.hasMoreTokens()) {
-                //throw new StackArithmeticException(1);
+                String badToken = st.nextToken();
+                throw new VMTranslatorException("[ILLEGAL SYNTAX]: arithmetic commands must be stand alone -> found '"
+                        + badToken + "'");
             }
 
         } else if (firstWord.equals("push")) {
             String secondWord = st.nextToken(" ");
             if (!validateMemSegment(secondWord)) {
-                //throw new MemoryException(1);
+                throw new VMTranslatorException("[INVALID MEMORY SEGMENT]: '" + secondWord + "' is not a validated memory segment");
             }
 
             commandType = CommandType.C_PUSH;
@@ -129,16 +137,23 @@ public class Parser {
         } else if (firstWord.equals("pop")) {
             String secondWord = st.nextToken(" ");
             if (!validateMemSegment(secondWord)) {
-                // throw new MemoryException(1); // 1 is invalid memory segment.. 2 negative offset.. 3 offset not valid
+                throw new VMTranslatorException("[INVALID MEMORY SEGMENT]: '" + secondWord + "' is not a validated memory segment");
             }
             commandType = CommandType.C_POP;
             memSeg = secondWord;
 
+
+
             // get the specific number
             setArg2(Integer.parseInt(st.nextToken()));
 
+            // check for popping a constant
+            if (memSeg.equals("constant")) {
+                throw new VMTranslatorException("[ILLEGAL COMMAND]: attempt to pop constant " +  arg2);
+            }
+
         } else {
-            //throw new SyntaxException();
+            throw new VMTranslatorException("[INVALID COMMAND]: unrecognized command '" + firstWord + "'");
         }
     }
 

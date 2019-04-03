@@ -1,5 +1,4 @@
 import com.sun.org.apache.bcel.internal.generic.POP;
-
 import java.io.File;
 
 /**
@@ -15,8 +14,8 @@ import java.io.File;
  */
 public class VMTranslator {
 
-    public static final boolean DEBUG = true;
-    public static final String IN_FILE_NAME = "BasicTest";
+    public static final boolean DEBUG = false;
+    public static final String IN_FILE_NAME = "StackTest";
 
     /** CodeWriter object for writing the code for each command **/
     private CodeWriter codeWriter;
@@ -27,8 +26,8 @@ public class VMTranslator {
     public static void main(String[] args) {
 
         // set up parser and codeWriter streams
-        Parser parser = new Parser("src/files/" + IN_FILE_NAME + ".vm");
-        CodeWriter codeWriter = new CodeWriter("src/files/" + IN_FILE_NAME + ".asm");
+        Parser parser = new Parser("src/in_files/" + IN_FILE_NAME + ".vm");
+        CodeWriter codeWriter = new CodeWriter("src/out_files/" + IN_FILE_NAME + ".asm");
 
         // while parser can continue
         while (parser.hasMoreCommands()) {
@@ -38,9 +37,13 @@ public class VMTranslator {
             // write the code
             if (parser.getCommandType() == CommandType.C_ARITHMETIC) {
                 codeWriter.writeArithmetic(parser.arg1());
+
+                codeWriter.getContinueLabel();
+                codeWriter.getTrueLabel();
+
             } else if (parser.getCommandType() == CommandType.C_PUSH ||
                     parser.getCommandType() == CommandType.C_POP) {
-                System.out.println("command type is push or pop");
+                if (DEBUG) System.out.println("command type is push or pop");
                 codeWriter.writePushPop(parser.getCommandType(), parser.getMemSeg(),
                         parser.arg2());
             } else {
@@ -48,6 +51,8 @@ public class VMTranslator {
             }
 
         }
+
+        codeWriter.writeEnding();
 
         if (DEBUG) System.out.println("\tprocess finished | " + parser.getLinesRead() + " lines read");
 
